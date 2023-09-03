@@ -129,6 +129,5 @@ def fit_params(init_k, savefig_filename=None):
         plt.savefig(savefig_filename)
     plt.show()
 
-
-# plot_original_data()
-fit_params(init_k=-0.6)
+if __name__ == '__main__':
+    fit_params(init_k=-0.6)
