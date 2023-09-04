@@ -4,14 +4,31 @@ import pandas as pd
 from sklearn import svm
 from typing import List, Tuple
 from functools import lru_cache
+import os
+import imageio.v2 as imageio
+from matplotlib import rcParams
+config = {
+    "font.family":'Times New Roman',
+    "font.size": 20,
+    "mathtext.fontset":'stix',
+    # "font.serif": ['SimSun'],
+}
+rcParams.update(config)
+
+font1 = {'family' : 'Times New Roman',
+'weight' : 'normal',
+'size'   : 20,
+} 
 
 
-@lru_cache
+
+# @lru_cache
 def read_data(filename: str = None):
     merge_df = pd.read_csv(filename)
     x, y = merge_df['diameter (km)'], merge_df['Period (h)']
     x, y = np.log10(x), -np.log10(y)
     X = np.array(list(zip(x, y)))
+    # plt.plot(x,y,'.')
     return X
 
 
@@ -75,8 +92,8 @@ def fill_gap(k, b, gap, color, savefig_name=None):
     y = k*x + b
     lower = y-gap/2
     upper = y+gap/2
-    plt.plot(x, y-gap/2, color=color)
     plt.plot(x, y+gap/2, color=color)
+    plt.plot(x, y-gap/2, color=color)
     plt.fill_between(x, lower, upper, color='grey', alpha=0.5)
     if savefig_name:
         plt.savefig(savefig_name)
@@ -94,6 +111,13 @@ def plot_original_data():
 
     plt.show()
 
+def generate_gif(n_image):
+    images = []
+    for i in range(n_image):
+        images.append(imageio.imread("gif/gap{}.png".format(i)))
+        os.remove("gif/gap{}.png".format(i))
+    imageio.mimsave('gif/gap_identification.gif', images, duration=0.1)
+
 
 def fit_params(init_k, savefig_filename=None):
     # 读取数据
@@ -101,33 +125,47 @@ def fit_params(init_k, savefig_filename=None):
     X = read_data(filename)
     k, b, gap = init_k, -1.2, 0.2
     clf = None
-    for i in range(1000):
+    plt.figure(figsize=(10, 8))
+    for i in range(150):
         labels = classify(X, k=k, b=b, gap=gap)
         (X_train, y_train), (X_test, y_test) = split(X, labels)
 
         # 获取直线斜率
         k, b, clf = fit(X_train, y_train)
         print(f'Iteration: {i}, k: {k}, b: {b}')
+        
+        # plot
+        plt.clf()
+        y_pred = clf.predict(X)
+        X1 = X[y_pred == 1]
+        X2 = X[y_pred == 0]
+        plt.scatter(X1[:, 0], -X1[:, 1], s=1.0, label='Class I')
+        plt.scatter(X2[:, 0], -X2[:, 1], s=1.0, label = 'Class II')
 
-    y_pred = clf.predict(X)
-    X1 = X[y_pred == 1]
-    X2 = X[y_pred == 0]
-    plt.scatter(X1[:, 0], X1[:, 1], s=1.0)
-    plt.scatter(X2[:, 0], X2[:, 1], s=1.0)
+        x_min, x_max = 0, 3
+        x = np.linspace(x_min, x_max, 100)
+        plt.plot(x, - (k * x + b), color = 'black')
+        plt.plot(x, - (k * x + b+gap))
+        plt.plot(x, - (k * x + b-gap))
+        plt.fill_between(x, - (k * x + b-gap), - (k * x + b+gap), color='grey', alpha=0.5)
+        plt.gca().invert_yaxis()
+        plt.legend(fontsize = 15)
+        plt.xlabel('log(D) (km)', font = font1)
+        plt.ylabel('log(P) (h)', font = font1)
+        plt.title('Iteration: {}'.format(i+1), fontdict=font1)
+        plt.xticks(fontproperties = 'Times New Roman', size = 20)
+        plt.yticks(fontproperties = 'Times New Roman', size = 20)   
+        plt.pause(0.1)
+        plt.savefig("gif/gap{}.png".format(i))
     
-
-    x_min, x_max = 0, 3
-    x = np.linspace(x_min, x_max, 100)
-    plt.plot(x, k * x + b)
-    plt.plot(x, k * x + b+gap)
-    plt.plot(x, k * x + b-gap)
-    plt.fill_between(x, k * x + b-gap, k * x + b+gap, color='grey', alpha=0.5)
-    plt.legend()
-    plt.xlabel('Diameter (km)')
-    plt.ylabel('Period (h)')
+    generate_gif(150)
+        
     if savefig_filename:
         plt.savefig(savefig_filename)
     plt.show()
+    
+
 
 if __name__ == '__main__':
-    fit_params(init_k=-0.6)
+    fit_params(init_k=-0)
+    # imageio.imread("gif/gap{}.pdf".format(2))
