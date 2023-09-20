@@ -102,13 +102,41 @@ def fill_gap(k, b, gap, color, savefig_name=None):
 def plot_original_data():
     filename = "asteroid_dataframe.csv"   # the original data file name (csv format)
     X = read_data(filename)
+    
+    plt.figure(figsize=(10, 8))
     plt.xlim([0, 3])
-    plt.scatter(X[:, 0], X[:, 1], s=1.0)
-    plt.xlabel('Diameter (km)')
-    plt.ylabel('Period (h)')
-    # plot the gap
-    fill_gap(-0.6, -1.2, gap=0.4, color='k')
+    plt.ylim([3.5, 0.2])
 
+    # plot the gap
+    x = np.linspace(0, 2.5, 100)
+    k = 0.6
+    b = 1.2
+    gap = 0.4
+    y = k*x + b
+    lower = y-gap/2
+    upper = y+gap/2
+    plt.plot(x, y+gap/2, color= 'k')
+    plt.plot(x, y-gap/2, color= 'k')
+    plt.fill_between(x, lower, upper, color='grey', alpha=0.5)
+
+    # plot the original data
+    condition1 =  ( 0.6 * X[:, 0] + 1.2 - 0.2 >  -X[:, 1]) 
+    condition2 =  (0.6 * X[:, 0] + 1.2 + 0.2 < - X[:, 1])
+    X1 = X[condition1]
+    X2 = X[condition2]
+    X3 = X[~(condition1 | condition2)]
+
+    plt.scatter(X1[:, 0],- X1[:, 1], s=1.0, label='Class I')
+    plt.scatter(X2[:, 0],- X2[:, 1], s=1.0, label = 'Class II')
+    plt.scatter(X3[:, 0],- X3[:, 1], color = 'grey', s=1.0, label = 'Unknown')
+
+    plt.legend(fontsize = 15)
+    plt.xlabel('log(D) (km)', font = font1)
+    plt.ylabel('log(P) (h)', font = font1)
+    plt.title('Initialization:  $P_{\\rm h} = %.2f \\, D_{\\rm km}^{%.3f} $'%(10**(1.2),-0.6), fontdict=font1)
+    plt.gca().invert_yaxis()
+
+    plt.savefig("initialization.pdf", bbox_inches='tight')
     plt.show()
 
 def generate_gif(n_image):
@@ -152,10 +180,14 @@ def fit_params(init_k, savefig_filename=None):
         plt.legend(fontsize = 15)
         plt.xlabel('log(D) (km)', font = font1)
         plt.ylabel('log(P) (h)', font = font1)
-        plt.title('Iteration: {}'.format(i+1), fontdict=font1)
+        plt.title('Iteration %d:  $P_{\\rm h} = %.2f \\, D_{\\rm km}^{%.3f} $'%(i+1, 10**(-b),k), fontdict=font1)
         plt.xticks(fontproperties = 'Times New Roman', size = 20)
         plt.yticks(fontproperties = 'Times New Roman', size = 20)   
+        plt.xlim([0, 3])
+        plt.ylim([3.5, 0.2])
         plt.pause(0.1)
+        if i == 0 or i == 149:
+            plt.savefig("gif/gap{}.pdf".format(i), bbox_inches='tight')
         plt.savefig("gif/gap{}.png".format(i))
     
     generate_gif(150)
@@ -167,5 +199,6 @@ def fit_params(init_k, savefig_filename=None):
 
 
 if __name__ == '__main__':
-    fit_params(init_k=-0)
+    # fit_params(init_k=-0.6)
+    plot_original_data()
     # imageio.imread("gif/gap{}.pdf".format(2))
