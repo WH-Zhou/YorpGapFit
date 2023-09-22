@@ -100,7 +100,7 @@ def fill_gap(k, b, gap, color, savefig_name=None):
 
 
 def plot_original_data():
-    filename = "asteroid_dataframe.csv"   # the original data file name (csv format)
+    filename = "asteroid_DAMIT_dataframe.csv"   # the original data file name (csv format)
     X = read_data(filename)
     
     plt.figure(figsize=(10, 8))
@@ -108,7 +108,7 @@ def plot_original_data():
     plt.ylim([3.5, 0.2])
 
     # plot the gap
-    x = np.linspace(0, 2.5, 100)
+    x = np.linspace(0, 3.1, 100)
     k = 0.6
     b = 1.2
     gap = 0.4
@@ -134,7 +134,7 @@ def plot_original_data():
     plt.xlabel('log(D) (km)', font = font1)
     plt.ylabel('log(P) (h)', font = font1)
     plt.title('Initialization:  $P_{\\rm h} = %.2f \\, D_{\\rm km}^{%.3f} $'%(10**(1.2),-0.6), fontdict=font1)
-    plt.gca().invert_yaxis()
+    # plt.gca().invert_yaxis()
 
     plt.savefig("initialization.pdf", bbox_inches='tight')
     plt.show()
@@ -149,7 +149,7 @@ def generate_gif(n_image):
 
 def fit_params(init_k, savefig_filename=None):
     # 读取数据
-    filename = "asteroid_dataframe.csv"   # the original data file name (csv format)
+    filename = "asteroid_DAMIT_dataframe.csv"   # the original data file name (csv format)
     X = read_data(filename)
     k, b, gap = init_k, -1.2, 0.2
     clf = None
@@ -186,11 +186,11 @@ def fit_params(init_k, savefig_filename=None):
         plt.xlim([0, 3])
         plt.ylim([3.5, 0.2])
         plt.pause(0.1)
-        if i == 0 or i == 149:
-            plt.savefig("gif/gap{}.pdf".format(i), bbox_inches='tight')
-        plt.savefig("gif/gap{}.png".format(i))
+        # if i == 0 or i == 149:
+        #     plt.savefig("gif/gap{}.pdf".format(i), bbox_inches='tight')
+        # plt.savefig("gif/gap{}.png".format(i))
     
-    generate_gif(150)
+    # generate_gif(150)
         
     if savefig_filename:
         plt.savefig(savefig_filename)
@@ -199,6 +199,6 @@ def fit_params(init_k, savefig_filename=None):
 
 
 if __name__ == '__main__':
-    # fit_params(init_k=-0.6)
-    plot_original_data()
+    fit_params(init_k=-0.75)
+    # plot_original_data()
     # imageio.imread("gif/gap{}.pdf".format(2))
