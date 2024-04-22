@@ -1,13 +1,9 @@
-# SVC: Support Vector Classification
-
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
-from sklearn import svm
 from sklearn.linear_model import LogisticRegression
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.datasets import make_blobs
+import pandas as pd
 from typing import List, Tuple
-from functools import lru_cache
 import os
 import imageio
 from matplotlib import rcParams
@@ -25,20 +21,13 @@ font1 = {'family' : 'Times New Roman',
 } 
 
 
-
-# @lru_cache
 def read_data(filename: str = None):
     merge_df = pd.read_csv(filename)
     x, y = merge_df['diameter (km)'], merge_df['Period (h)']
-    x, y = np.log10(x), -np.log10(y)
+    x, y = np.log(x), -np.log(y)
     X = np.array(list(zip(x, y)))
     # plt.plot(x,y,'.')
     return X
-
-
-def line(X, k, b, gap=0.5):
-    return k * X[:, 0] + b + gap
-
 
 def classify(X, k, b, gap) -> List[int]:
     upper_index = X[:, 1] > line(X, k=k, b=b, gap=gap)  # label 1
@@ -53,6 +42,8 @@ def classify(X, k, b, gap) -> List[int]:
     labels = np.array(labels)
     return labels
 
+def line(X, k, b, gap=0.5):
+    return k * X[:, 0] + b + gap
 
 def split(X, labels):
     ratio = 1
@@ -80,84 +71,42 @@ def split(X, labels):
     # print(f'upper ~ lower: {upper_count}~{lower_count}')
     return (X_train, y_train), (X_test, y_test)
 
-
 def fit(X, labels) -> Tuple[float, float]:
-    clf = svm.LinearSVC()
-    # clf = LogisticRegression()
-    # clf = LinearDiscriminantAnalysis()
-    fit = clf.fit(X, labels)
-    coefs = fit.coef_[0]
-    intercept = fit.intercept_[0]
+    model = LogisticRegression()
+    model.fit(X, labels)
+    coefs = model.coef_[0]
+    intercept = model.intercept_[0]
     k = -coefs[0]/coefs[1]
     b = -intercept/coefs[1]
-    return k, b, clf
+    return k, b, model
 
 
-def fill_gap(k, b, gap, color, savefig_name=None):
-    x = np.linspace(0, 2.5, 100)
-    y = k*x + b
-    lower = y-gap/2
-    upper = y+gap/2
-    plt.plot(x, y+gap/2, color=color)
-    plt.plot(x, y-gap/2, color=color)
-    plt.fill_between(x, lower, upper, color='grey', alpha=0.5)
-    if savefig_name:
-        plt.savefig(savefig_name)
+# Function to plot decision boundary
+def plot_decision_boundary(X, y, model):
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 500), np.linspace(y_min, y_max, 500))
+    Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
 
-
-def plot_original_data():
-    filename = "asteroid_dataframe.csv"   # the original data file name (csv format)
-    X = read_data(filename)
-    
-    plt.figure(figsize=(10, 8))
-    plt.xlim([0, 3])
-    plt.ylim([3.5, 0.2])
-
-    # plot the gap
-    x = np.linspace(0, 3.1, 100)
-    k = 0.6
-    b = 1.2
-    gap = 0.4
-    y = k*x + b
-    lower = y-gap/2
-    upper = y+gap/2
-    plt.plot(x, y+gap/2, color= 'k')
-    plt.plot(x, y-gap/2, color= 'k')
-    plt.fill_between(x, lower, upper, color='grey', alpha=0.5)
-
-    # plot the original data
-    condition1 =  ( 0.6 * X[:, 0] + 1.2 - 0.2 >  -X[:, 1]) 
-    condition2 =  (0.6 * X[:, 0] + 1.2 + 0.2 < - X[:, 1])
-    X1 = X[condition1]
-    X2 = X[condition2]
-    X3 = X[~(condition1 | condition2)]
-
-    plt.scatter(X1[:, 0],- X1[:, 1], s=1.0, label='Class I')
-    plt.scatter(X2[:, 0],- X2[:, 1], s=1.0, label = 'Class II')
-    plt.scatter(X3[:, 0],- X3[:, 1], color = 'grey', s=1.0, label = 'Unknown')
-
-    plt.legend(fontsize = 15)
-    plt.xlabel('log(D) (km)', font = font1)
-    plt.ylabel('log(P) (h)', font = font1)
-    plt.title('Initialization:  $P_{\\rm h} = %.2f \\, D_{\\rm km}^{%.3f} $'%(10**(1.2),-0.6), fontdict=font1)
-    # plt.gca().invert_yaxis()
-
-    plt.savefig("initialization.pdf", bbox_inches='tight')
+    plt.figure(figsize=(10, 6))
+    plt.contourf(xx, yy, Z, alpha=0.5, cmap='coolwarm')
+    plt.scatter(X[:, 0], X[:, 1], c=y, cmap='coolwarm', edgecolors='k')
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    plt.title('Logistic Regression Decision Boundary')
+    plt.colorbar()
     plt.show()
-
-def generate_gif(n_image):
-    images = []
-    for i in range(n_image):
-        images.append(imageio.imread("gif/gap{}.png".format(i)))
-        os.remove("gif/gap{}.png".format(i))
-    imageio.mimsave('gif/gap_identification.gif', images, duration=0.1)
-
+    
+    
 
 def fit_params(init_k, savefig_filename=None):
+    
+
     # 读取数据
     filename = "asteroid_dataframe.csv"   # the original data file name (csv format)
     X = read_data(filename)
-    k, b, gap = init_k, -1.2, 0.25
+    k, b, gap = init_k, -1.2 * np.log(10), 0.1* np.log(10)
     clf = None
     plt.figure(figsize=(10, 8))
     for i in range(100):
@@ -173,38 +122,37 @@ def fit_params(init_k, savefig_filename=None):
         y_pred = clf.predict(X)
         X1 = X[y_pred == 1]
         X2 = X[y_pred == 0]
-        plt.scatter(X1[:, 0], -X1[:, 1], s=1.0, label='Class I')
-        plt.scatter(X2[:, 0], -X2[:, 1], s=1.0, label = 'Class II')
+        plt.scatter(np.e**X1[:, 0], np.e**(-X1[:, 1]), s=1.0, label='Class I')
+        plt.scatter(np.e**X2[:, 0], np.e**(-X2[:, 1]), s=1.0, label = 'Class II')
 
-        x_min, x_max = 0, 3
-        x = np.linspace(x_min, x_max, 100)
-        plt.plot(x, - (k * x + b), color = 'black')
-        plt.plot(x, - (k * x + b+gap))
-        plt.plot(x, - (k * x + b-gap))
-        plt.fill_between(x, - (k * x + b-gap), - (k * x + b+gap), color='grey', alpha=0.5)
+        x_min, x_max = 0, 3*np.log(10)
+        x = np.e**np.linspace(x_min, x_max, 100)
+        plt.plot(x, np.e**(-b) * x**(-k), color = 'black')
+        plt.plot(x, np.e**(-b-gap) * x**(-k))
+        plt.plot(x, np.e**(-b+gap) * x**(-k))
+        # plt.plot(x, - (k * x + b), color = 'black')
+        # plt.plot(x, - (k * x + b+gap))
+        # plt.plot(x, - (k * x + b-gap))
+        # plt.fill_between(x, - (k * x + b-gap), - (k * x + b+gap), color='grey', alpha=0.5)
         plt.gca().invert_yaxis()
         plt.legend(fontsize = 15)
         plt.xlabel('log(D) (km)', font = font1)
         plt.ylabel('log(P) (h)', font = font1)
-        plt.title('Iteration %d:  $P_{\\rm h} = %.2f \\, D_{\\rm km}^{%.3f} $'%(i+1, 10**(-b),k), fontdict=font1)
+        plt.title('Iteration %d:  $P_{\\rm h} = %.2f \\, D_{\\rm km}^{%.3f} $'%(i+1, np.e**(-b),k), fontdict=font1)
         plt.xticks(fontproperties = 'Times New Roman', size = 20)
         plt.yticks(fontproperties = 'Times New Roman', size = 20)   
-        plt.xlim([0, 3])
-        plt.ylim([3.5, 0.2])
+        plt.xscale('log')
+        plt.yscale('log')
+        # plt.xlim([0, 3])
+        # plt.ylim([3.5, 0.2])
         plt.pause(0.1)
         # if i == 0 or i == 149:
         #     plt.savefig("gif/gap{}.pdf".format(i), bbox_inches='tight')
         # plt.savefig("gif/gap{}.png".format(i))
     
     # generate_gif(150)
-        
-    if savefig_filename:
-        plt.savefig(savefig_filename)
-    plt.show()
-    
-
-
+ 
 if __name__ == '__main__':
-    fit_params(init_k=-0.6)
+    fit_params(init_k=-0)
     # plot_original_data()
     # imageio.imread("gif/gap{}.pdf".format(2))
