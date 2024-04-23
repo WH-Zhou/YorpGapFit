@@ -32,7 +32,14 @@ def read_data(filename: str = None):
     x, y = merge_df['diameter (km)'], merge_df['Period (h)']
     x, y = np.log10(x), -np.log10(y)
     X = np.array(list(zip(x, y)))
+    # print(X)
     # plt.plot(x,y,'.')
+    # read simulation data
+    omega = np.loadtxt('/Users/zhouwhan/crater_YORP_with_thermal_inertia/shapes/tumbling_spin_evolution/muQ10_best/omega')
+    y = 2 * np.pi / omega[:,-1] / 3600
+    x = np.loadtxt('/Users/zhouwhan/crater_YORP_with_thermal_inertia/shapes/tumbling_spin_evolution/muQ10_best/diameter')
+    x, y = np.log10(x), -np.log10(y)
+    X = np.array(list(zip(x, y)))
     return X
 
 
@@ -157,6 +164,10 @@ def fit_params(init_k, savefig_filename=None):
     # 读取数据
     filename = "asteroid_dataframe.csv"   # the original data file name (csv format)
     X = read_data(filename)
+    
+    
+    # print(X.shape)
+    
     k, b, gap = init_k, -1.2, 0.25
     clf = None
     plt.figure(figsize=(10, 8))
